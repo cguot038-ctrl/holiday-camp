@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>祈癒職能治療所｜主管後台</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--ink:#1a1a2e;--paper:#f7f3ee;--warm:#e8ddd0;--accent:#c0392b;--accent2:#2980b9;--green:#27ae60;--orange:#e67e22;--gold:#d4a847;--shadow:rgba(26,26,46,0.12);--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+#login-screen{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.4s}
+#login-screen.hide{opacity:0;pointer-events:none}
+.login-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:40px 36px;width:320px;text-align:center}
+.login-logo{font-family:'Noto Serif TC',serif;color:var(--gold);font-size:22px;margin-bottom:6px}
+.login-sub{color:rgba(255,255,255,0.4);font-size:12px;margin-bottom:28px}
+.login-label{display:block;color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;text-align:left;margin-bottom:6px}
+.login-input{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:11px 14px;font-size:15px;color:white;font-family:'Noto Sans TC',sans-serif;letter-spacing:4px;text-align:center;margin-bottom:18px}
+.login-input:focus{outline:none;border-color:var(--gold)}
+.login-btn{width:100%;background:var(--gold);color:var(--ink);border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s}
+.login-btn:hover{background:#c49a3a}
+.login-err{color:#e74c3c;font-size:12px;margin-top:10px;min-height:18px}
+.login-shake{animation:shake 0.4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#loading-screen{position:fixed;inset:0;background:var(--ink);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:9998;transition:opacity 0.4s}
+#loading-screen.show{display:flex}#loading-screen.hide{opacity:0;pointer-events:none}
+.loading-logo{font-family:'Noto Serif TC',serif;color:var(--gold);font-size:22px;margin-bottom:16px}
+.loading-bar{width:200px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden}
+.loading-fill{height:100%;background:var(--gold);border-radius:2px;animation:loadFill 1.2s ease-out forwards}
+@keyframes loadFill{from{width:0}to{width:100%}}
+.loading-msg{color:rgba(255,255,255,0.5);font-size:12px;margin-top:12px}
+#notification-area{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:340px}
+.notif{background:white;border-radius:var(--radius);padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.18);border-left:5px solid var(--accent);animation:slideIn 0.4s cubic-bezier(.175,.885,.32,1.275);display:flex;gap:12px;align-items:flex-start}
+.notif.type-ok{border-left-color:var(--green)}.notif.type-enroll{border-left-color:var(--accent2)}.notif.type-alert{border-left-color:var(--accent)}
+.notif-icon{font-size:20px;flex-shrink:0}.notif-body{flex:1}.notif-title{font-weight:700;font-size:13px;margin-bottom:2px}.notif-msg{font-size:12px;color:#555;line-height:1.5}
+.notif-close{background:none;border:none;cursor:pointer;color:#bbb;font-size:16px;flex-shrink:0}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(120%);opacity:0}}
+header{background:var(--ink);color:white;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px var(--shadow);gap:12px;flex-wrap:wrap}
+.header-brand{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.header-brand span{color:var(--gold)}
+.header-right{display:flex;align-items:center;gap:8px}
+.header-nav{display:flex;gap:3px;flex-wrap:wrap}
+.nav-btn{padding:6px 12px;border-radius:8px;border:none;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;background:transparent;color:rgba(255,255,255,0.7)}
+.nav-btn.active,.nav-btn:hover{background:rgba(255,255,255,0.15);color:white}
+.nav-btn.active{background:var(--accent);color:white}
+.badge{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:white;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;padding:0 4px;margin-left:4px}
+.logout-btn{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:rgba(255,255,255,0.6);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.logout-btn:hover{background:rgba(255,255,255,0.1);color:white}
+
+/* DROPDOWN */
+.nav-dropdown{position:relative}
+.dropdown-menu{display:none;position:absolute;top:calc(100% + 8px);left:0;background:white;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.18);min-width:150px;z-index:200;overflow:hidden;border:1px solid rgba(0,0,0,0.08)}
+.dropdown-menu.show{display:block;animation:fadeDown 0.2s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.dropdown-item{padding:11px 16px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.15s}
+.dropdown-item:hover{background:var(--paper)}
+
+/* ALERT TAB RED PULSE */
+#tab-alerts.has-alert{background:var(--accent)!important;color:white!important;animation:alertPulse 1.5s infinite}
+@keyframes alertPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,0.5)}50%{box-shadow:0 0 0 6px rgba(192,57,43,0)}}
+.view{display:none;padding:20px;max-width:1100px;margin:0 auto}.view.active{display:block}
+.card{background:white;border-radius:var(--radius);padding:20px 24px;box-shadow:0 2px 12px var(--shadow);margin-bottom:20px}
+.card-title{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.card-title::before{content:'';display:block;width:4px;height:18px;background:var(--accent);border-radius:2px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:700px){.grid-2,.grid-4{grid-template-columns:1fr}}
+.stat-chip{background:var(--paper);border-radius:10px;padding:16px;text-align:center;border:1px solid var(--warm)}
+.stat-num{font-size:24px;font-weight:700;font-family:'Noto Serif TC',serif}.stat-label{font-size:11px;color:#888;margin-top:4px}
+.stat-chip.accent .stat-num{color:var(--accent)}.stat-chip.blue .stat-num{color:var(--accent2)}.stat-chip.green .stat-num{color:var(--green)}.stat-chip.orange .stat-num{color:var(--orange)}
+.form-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px}
+label{font-size:12px;font-weight:600;color:#555}
+input,select,textarea{border:1.5px solid #ddd;border-radius:8px;padding:9px 12px;font-family:'Noto Sans TC',sans-serif;font-size:13px;color:var(--ink);transition:border-color 0.2s;background:white;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent2);box-shadow:0 0 0 3px rgba(41,128,185,0.1)}
+textarea{resize:vertical;min-height:60px}
+.btn{padding:9px 16px;border-radius:8px;border:none;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-primary{background:var(--accent);color:white}.btn-primary:hover{background:#a93226;transform:translateY(-1px)}
+.btn-blue{background:var(--accent2);color:white}.btn-blue:hover{background:#2471a3}
+.btn-green{background:var(--green);color:white}.btn-green:hover{background:#219a52}
+.btn-ghost{background:var(--warm);color:var(--ink)}.btn-ghost:hover{background:#ddd5c8}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important}
+.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-summer{background:#fdebd0;color:#d35400}.pill-winter{background:#d6eaf8;color:#1a5276}
+.pill-ok{background:#d5f5e3;color:#1e8449}.pill-wait{background:#fef9e7;color:#9a7d0a}
+.pill-alert{background:#fdebd0;color:#d35400;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.alert-box{border-radius:var(--radius);padding:14px 18px;display:flex;gap:12px;align-items:flex-start;font-size:13px;margin-bottom:16px}
+.alert-box.danger{background:#fde8e8;border-left:4px solid var(--accent)}
+.alert-box.info{background:#dbeafe;border-left:4px solid var(--accent2)}
+.camp-card{border:1.5px solid var(--warm);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden}
+.camp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.camp-card.summer::before{background:linear-gradient(90deg,#f39c12,#e74c3c)}
+.camp-card.winter::before{background:linear-gradient(90deg,#3498db,#9b59b6)}
+.camp-name{font-weight:700;font-size:15px;margin-bottom:6px;margin-top:4px}
+.camp-meta{font-size:12px;color:#888;line-height:1.9}
+.prog-bar{background:var(--warm);border-radius:4px;height:8px;overflow:hidden;margin-top:5px}
+.prog-fill{height:100%;border-radius:4px}
+.prog-fill.red{background:var(--accent)}.prog-fill.green{background:var(--green)}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;background:var(--paper);font-weight:600;color:#666;font-size:11px;border-bottom:2px solid var(--warm);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--warm);vertical-align:middle}
+tr:last-child td{border-bottom:none}tr:hover td{background:#fafaf8}
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.section-hd h2{font-family:'Noto Serif TC',serif;font-size:18px;font-weight:700}
+.tl-item{display:flex;gap:16px;position:relative}
+.tl-item::before{content:'';position:absolute;left:19px;top:40px;bottom:-8px;width:2px;background:var(--warm)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-bottom:20px}
+.tl-dot.red{background:#fdebd0}.tl-dot.blue{background:#d6eaf8}
+.tl-content{flex:1;padding-bottom:8px}
+.tl-time{font-size:11px;color:#aaa;margin-bottom:3px}.tl-text{font-size:13px;font-weight:500}.tl-sub{font-size:12px;color:#888;margin-top:2px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity 0.3s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal{background:white;border-radius:16px;padding:24px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.3s;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal-overlay.show .modal{transform:translateY(0)}
+.modal-title{font-family:'Noto Serif TC',serif;font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#aaa}
+.modal-footer{margin-top:18px;display:flex;gap:10px;justify-content:flex-end}
+/* WEEK ROWS */
+.week-row{display:grid;grid-template-columns:40px 1fr 1fr 110px 32px;gap:8px;align-items:center;background:var(--paper);border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--warm)}
+.week-label{font-size:12px;font-weight:700;color:var(--accent2);text-align:center}
+.week-row input{font-size:12px;padding:6px 8px;min-width:0}
+.remove-week{background:none;border:none;cursor:pointer;color:#ccc;font-size:18px;line-height:1;padding:0;text-align:center}
+.remove-week:hover{color:var(--accent)}
+.week-col-hd{display:grid;grid-template-columns:40px 1fr 1fr 110px 32px;gap:8px;padding:0 12px;margin-bottom:4px;font-size:11px;font-weight:600;color:#aaa}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media print{
+  body>*:not(#receipt-modal){display:none!important}
+  #receipt-modal{position:static!important;background:white!important;display:block!important;opacity:1!important;pointer-events:all!important}
+  #receipt-actions{display:none!important}
+  .modal{box-shadow:none!important;max-width:100%!important;border-radius:0!important}
+  #receipt-content{padding:16px!important}
+}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🌿 祈癒職能治療所</div>
+    <div class="login-sub">主管後台｜請輸入密碼進入</div>
+    <label class="login-label">密碼</label>
+    <input class="login-input" type="password" id="pwd-input" placeholder="••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">🔑 進入後台</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="loading-screen">
+  <div class="loading-logo">🌿 祈癒｜主管後台</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+  <div class="loading-msg">載入資料中…</div>
+</div>
+
+<div id="notification-area"></div>
+
+<header id="main-header" style="display:none">
+  <div class="header-brand">🌿 <span>祈癒</span>｜主管後台</div>
+  <div class="header-nav">
+    <button class="nav-btn active" onclick="showView('dashboard')" id="tab-dashboard">🏠 總覽</button>
+
+    <!-- 課程管理 下拉 -->
+    <div class="nav-dropdown" id="dd-course">
+      <button class="nav-btn" onclick="toggleDropdown('course')">
+        📋 課程管理 <span id="badge-course" class="badge" style="display:none">0</span> ▾
+      </button>
+      <div class="dropdown-menu" id="menu-course">
+        <div class="dropdown-item" onclick="showView('camps');closeDropdowns()">🗓️ 班別設定</div>
+        <div class="dropdown-item" onclick="showView('enroll');closeDropdowns()">
+          📝 報名審核 <span id="badge-enroll" class="badge" style="display:none;background:var(--orange)">0</span>
+        </div>
+        <div class="dropdown-item" onclick="showView('stats');closeDropdowns()">📊 出席統計</div>
+      </div>
+    </div>
+
+    <!-- 通報（紅色警示） -->
+    <button class="nav-btn" id="tab-alerts" onclick="showView('alerts')"
+      style="position:relative">
+      🚨 通報
+      <span id="badge-alerts" class="badge" style="display:none;background:var(--accent)">0</span>
+    </button>
+
+    <!-- 費用 -->
+    <button class="nav-btn" onclick="showView('finance')" id="tab-finance">💰 費用</button>
+
+    <!-- 行政管理 下拉 -->
+    <div class="nav-dropdown" id="dd-admin">
+      <button class="nav-btn" onclick="toggleDropdown('admin')">🗂️ 行政管理 ▾</button>
+      <div class="dropdown-menu" id="menu-admin">
+        <div class="dropdown-item" onclick="showView('salary');closeDropdowns()">💴 薪資記錄</div>
+        <div class="dropdown-item" onclick="showView('archive');closeDropdowns()">📁 評鑑歸檔</div>
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span style="font-size:11px;color:rgba(255,255,255,0.4)" id="now-time"></span>
+    <button class="logout-btn" onclick="doLogout()">登出</button>
+  </div>
+</header>
+
+<div class="view active" id="view-dashboard">
+  <div class="section-hd" style="margin-top:8px"><h2>🏠 系統總覽</h2></div>
+
+  <!-- 三個獨立警示區塊 -->
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+    <!-- 課程待辦 -->
+    <div id="dash-course-alert" style="display:none;background:white;border-radius:var(--radius);padding:14px 18px;box-shadow:0 2px 12px var(--shadow);border-left:5px solid var(--accent2)">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px">📋 課程待辦</div>
+      <div id="dash-course-alert-content"></div>
+    </div>
+    <!-- 通報事項 -->
+    <div id="dash-alert-section" style="display:none;background:white;border-radius:var(--radius);padding:14px 18px;box-shadow:0 2px 12px var(--shadow);border-left:5px solid var(--accent);animation:alertPulse 2s infinite">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">🚨 緊急通報</div>
+      <div id="dash-alert-section-content"></div>
+    </div>
+    <!-- 行政事項 -->
+    <div id="dash-admin-alert" style="display:none;background:white;border-radius:var(--radius);padding:14px 18px;box-shadow:0 2px 12px var(--shadow);border-left:5px solid var(--orange)">
+      <div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:8px">🗂️ 行政待辦</div>
+      <div id="dash-admin-alert-content"></div>
+    </div>
+  </div>
+
+  <!-- 統計數字（拿掉收費） -->
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-chip blue"><div class="stat-num" id="stat-enrolled">—</div><div class="stat-label">已報名人數</div></div>
+    <div class="stat-chip orange"><div class="stat-num" id="stat-pending">—</div><div class="stat-label">待審核報名</div></div>
+    <div class="stat-chip accent"><div class="stat-num" id="stat-alerts">—</div><div class="stat-label">待處理通報</div></div>
+    <div class="stat-chip green"><div class="stat-num" id="stat-camps">—</div><div class="stat-label">開放中班別</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">最新動態</div>
+      <div id="dash-timeline"><div style="font-size:13px;color:#aaa;text-align:center;padding:20px">載入中…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">班別名額狀況</div>
+      <div id="dash-camp-capacity" style="display:flex;flex-direction:column;gap:12px"><div style="font-size:13px;color:#aaa;text-align:center;padding:10px">載入中…</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-camps">
+  <div class="section-hd"><h2>🗓️ 班別管理</h2><button class="btn btn-primary" onclick="openCampModal()">＋ 新增班別</button></div>
+  <div class="grid-2" id="camps-grid"><div style="font-size:13px;color:#aaa;text-align:center;padding:40px;grid-column:1/-1">載入中…</div></div>
+</div>
+
+<div class="view" id="view-enroll">
+  <div class="section-hd">
+    <h2>📋 報名管理</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="filter-camp" style="font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid #ddd" onchange="renderEnrollTable()"><option value="">所有班別</option></select>
+      <select id="filter-status" style="font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid #ddd" onchange="renderEnrollTable()"><option value="">所有狀態</option><option value="pending">待確認</option><option value="confirmed">已確認</option><option value="rejected">已拒絕</option></select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>學員</th><th>班別</th><th>選擇週次/期</th><th>家屬聯絡</th><th>用藥</th><th>費用</th><th>狀態</th><th>操作</th></tr></thead>
+        <tbody id="enroll-table-body"><tr><td colspan="8" style="text-align:center;color:#aaa;padding:30px">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-alerts">
+  <div class="section-hd"><h2>🚨 異常通報紀錄</h2></div>
+  <div class="card">
+    <div class="card-title" style="color:var(--accent2)">🚗 今日提早接走統整（給老師）</div>
+    <div id="pickup-list"><div style="font-size:13px;color:#aaa;text-align:center;padding:10px">今日尚無提早接走通報</div></div>
+    <div style="margin-top:12px"><button class="btn btn-sm btn-blue" onclick="exportPickupList()">📋 複製給老師</button></div>
+  </div>
+  <div class="card"><div class="card-title" style="color:var(--accent)">⚠️ 待處理通報</div><div id="pending-alerts"><div style="font-size:13px;color:#aaa;text-align:center;padding:20px">載入中…</div></div></div>
+  <div class="card"><div class="card-title">✅ 已處理通報</div><div id="resolved-alerts"><div style="font-size:13px;color:#aaa;text-align:center;padding:20px">載入中…</div></div></div>
+</div>
+
+<div class="view" id="view-stats">
+  <div class="section-hd">
+    <h2>📊 出席統計表</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="stats-filter-camp" style="font-size:13px;padding:7px 12px;border-radius:8px;border:1.5px solid #ddd" onchange="renderStats()">
+        <option value="">所有班別</option>
+      </select>
+      <button class="btn btn-green" onclick="exportStatsText()">📋 複製統計表</button>
+    </div>
+  </div>
+
+  <!-- 總計 -->
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-chip blue"><div class="stat-num" id="stats-total-enroll">—</div><div class="stat-label">確認報名人數</div></div>
+    <div class="stat-chip green"><div class="stat-num" id="stats-total-person-weeks">—</div><div class="stat-label">總人次（週）</div></div>
+    <div class="stat-chip orange"><div class="stat-num" id="stats-total-days">—</div><div class="stat-label">總人天數</div></div>
+    <div class="stat-chip accent"><div class="stat-num" id="stats-total-weeks">—</div><div class="stat-label">共幾週課程</div></div>
+  </div>
+
+  <!-- 週次統計表 -->
+  <div class="card" id="stats-table-card">
+    <div class="card-title">各週出席人名統計</div>
+    <div id="stats-content"><div style="font-size:13px;color:#aaa;text-align:center;padding:30px">請先選擇班別，或等資料載入</div></div>
+  </div>
+</div>
+
+<div class="view" id="view-finance">
+  <div class="section-hd"><h2>💰 費用統計</h2></div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-chip green"><div class="stat-num" id="fin-total">—</div><div class="stat-label">應收總計</div></div>
+    <div class="stat-chip blue"><div class="stat-num" id="fin-paid">—</div><div class="stat-label">已繳費</div></div>
+    <div class="stat-chip orange"><div class="stat-num" id="fin-unpaid">—</div><div class="stat-label">待繳費</div></div>
+    <div class="stat-chip accent"><div class="stat-num" id="fin-count">—</div><div class="stat-label">報名人數</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">繳費狀況明細</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>學員</th><th>班別</th><th>週次/期別</th><th>應繳</th><th>用藥簽名</th><th>繳費</th><th>操作</th></tr></thead>
+        <tbody id="finance-table"><tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Receipt 收費單 -->
+<div class="modal-overlay" id="receipt-modal" style="z-index:600">
+  <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
+    <!-- 列印時隱藏的按鈕列 -->
+    <div id="receipt-actions" style="display:flex;gap:8px;padding:14px 18px;background:var(--ink);align-items:center;justify-content:space-between">
+      <span style="font-size:13px;color:rgba(255,255,255,0.7)">收費單 — 可截圖或列印</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" style="background:var(--gold);color:var(--ink);font-weight:700" onclick="window.print()">🖨️ 列印</button>
+        <button class="btn btn-sm btn-ghost" onclick="closeReceiptModal()">✕ 關閉</button>
+      </div>
+    </div>
+    <!-- 收費單內容 -->
+    <div id="receipt-content" style="padding:28px 28px 24px;background:white">
+      <!-- 動態填入 -->
+    </div>
+  </div>
+</div>
+
+<!-- 薪資記錄 -->
+<div class="view" id="view-salary">
+  <div class="section-hd">
+    <h2>💴 治療師薪資記錄</h2>
+    <button class="btn btn-primary" onclick="openSalaryModal()">＋ 新增薪資</button>
+  </div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-chip green"><div class="stat-num" id="sal-total">—</div><div class="stat-label">本月薪資總計</div></div>
+    <div class="stat-chip blue"><div class="stat-num" id="sal-paid">—</div><div class="stat-label">已發放</div></div>
+    <div class="stat-chip orange"><div class="stat-num" id="sal-unpaid">—</div><div class="stat-label">待發放</div></div>
+    <div class="stat-chip accent"><div class="stat-num" id="sal-count">—</div><div class="stat-label">治療師人數</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">薪資明細</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>治療師</th><th>月份</th><th>項目</th><th>金額</th><th>狀態</th><th>備註</th><th>操作</th></tr></thead>
+        <tbody id="salary-table"><tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 評鑑歸檔 -->
+<div class="view" id="view-archive">
+  <div class="section-hd">
+    <h2>📁 評鑑資料歸檔</h2>
+    <button class="btn btn-primary" onclick="openArchiveModal()">＋ 新增文件</button>
+  </div>
+  <div class="card">
+    <div class="card-title">文件清單</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>文件名稱</th><th>類別</th><th>日期</th><th>負責人</th><th>狀態</th><th>備註</th><th>操作</th></tr></thead>
+        <tbody id="archive-table"><tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">載入中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: New Camp -->
+<div class="modal-overlay" id="camp-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="modal-title-text">＋ 新增班別</span> <button class="modal-close" onclick="closeCampModal()">✕</button></div>
+
+    <!-- 班別性質切換 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <button id="mode-btn-holiday" onclick="setCampMode('holiday')" type="button" style="padding:10px;border-radius:10px;border:2px solid var(--accent2);background:#eef6fc;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--accent2)">
+        ☀️❄️ 假期班<br><span style="font-size:10px;font-weight:400;color:#888">按週收費</span>
+      </button>
+      <button id="mode-btn-period" onclick="setCampMode('period')" type="button" style="padding:10px;border-radius:10px;border:2px solid #ddd;background:white;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:#888">
+        🏫🎨 課後/主題<br><span style="font-size:10px;font-weight:400;color:#aaa">按期收費</span>
+      </button>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group"><label>班別名稱 *</label><input id="camp-name" placeholder="例：2026 暑假班 / 114上課後班 / 感統主題班"></div>
+      <div class="form-group"><label>課程類型</label>
+        <select id="camp-type">
+          <option value="summer">☀️ 暑假班</option>
+          <option value="winter">❄️ 寒假班</option>
+          <option value="afterschool">🏫 課後班（平日）</option>
+          <option value="theme">🎨 主題課程班</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>名額上限 *</label><input type="number" id="camp-quota" value="10" min="1" max="50"></div>
+      <div class="form-group"><label>報名截止日</label><input type="date" id="camp-deadline"></div>
+    </div>
+
+    <!-- 上下架設定 -->
+    <div style="background:#f0fdf4;border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--green)">📢 開放家屬報名</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">關閉後家屬端看不到此班別</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:48px;height:26px;cursor:pointer">
+        <input type="checkbox" id="camp-published" checked style="opacity:0;width:0;height:0">
+        <span id="camp-published-track" style="position:absolute;inset:0;background:var(--green);border-radius:13px;transition:0.3s">
+          <span id="camp-published-thumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;background:white;border-radius:50%;transition:0.3s;transform:translateX(22px)"></span>
+        </span>
+      </label>
+    </div>
+
+    <!-- 假期班：整月優惠 + 週次 -->
+    <div id="holiday-section">
+      <!-- 全期報名設定 -->
+      <div style="background:#f0fdf4;border-radius:10px;padding:14px;margin-bottom:16px;border:1.5px solid #bbf7d0">
+        <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px">🗓️ 全期報名設定（家屬可選擇一次報名全部週次）</div>
+        <div class="form-row" style="margin-bottom:0">
+          <div class="form-group"><label>全期報名總價 NT$</label><input type="number" id="camp-fullterm-price" placeholder="留空表示不開放全期報名"></div>
+          <div class="form-group"><label>全期說明</label><input id="camp-fullterm-desc" placeholder="例：7月+8月全部報名"></div>
+        </div>
+      </div>
+      <!-- 滿天數折扣設定 -->
+      <div style="background:#eef6fc;border-radius:10px;padding:14px;margin-bottom:16px;border:1.5px solid #aed6f1">
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:12px">🎁 累積天數折扣設定（部分報名適用，系統自動套用最高級別）</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:white;border-radius:8px;border:1px solid #ddd">
+          <span style="font-size:12px;font-weight:700;color:var(--accent2);white-space:nowrap">📅 滿20天</span>
+          <div class="form-group" style="margin-bottom:0;flex:1"><input type="number" id="camp-discount-amount" placeholder="折抵金額 NT$（留空不設定）"></div>
+          <div class="form-group" style="margin-bottom:0;flex:1"><input id="camp-discount-desc" placeholder="說明，例：報滿20天折抵2000元"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:white;border-radius:8px;border:1px solid #ddd">
+          <span style="font-size:12px;font-weight:700;color:var(--green);white-space:nowrap">📅 滿40天</span>
+          <div class="form-group" style="margin-bottom:0;flex:1"><input type="number" id="camp-discount-amount-40" placeholder="折抵金額 NT$（留空不設定）"></div>
+          <div class="form-group" style="margin-bottom:0;flex:1"><input id="camp-discount-desc-40" placeholder="說明，例：報滿40天折抵5000元"></div>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:8px">💡 系統自動計算天數，優先套用最高等級折扣</div>
+      </div>
+      <!-- 週次設定 -->
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:700;color:var(--ink)">📅 週次安排 *</label>
+          <button class="btn btn-sm btn-blue" onclick="addWeekRow()" type="button">＋ 新增一週</button>
+        </div>
+        <div class="week-col-hd"><span style="text-align:center">週次</span><span>開始日期</span><span>結束日期</span><span>費用 NT$</span><span></span></div>
+        <div id="weeks-container"></div>
+        <div style="font-size:11px;color:#aaa;margin-top:6px">💡 天數由系統自動計算（結束日－開始日），家屬自由勾選，滿20天自動折扣</div>
+      </div>
+    </div>
+
+    <!-- 課後/主題班：期數設定 -->
+    <div id="period-section" style="display:none">
+      <div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:700;color:var(--ink)">📋 期數安排 *</label>
+          <button class="btn btn-sm btn-blue" onclick="addPeriodRow()" type="button">＋ 新增一期</button>
+        </div>
+        <div class="week-col-hd"><span style="text-align:center">期別</span><span>開始日期</span><span>結束日期</span><span>費用 NT$</span><span></span></div>
+        <div id="periods-container"></div>
+        <div style="font-size:11px;color:#aaa;margin-top:6px">💡 家屬選擇要報名的期別，每期獨立收費</div>
+      </div>
+    </div>
+
+    <div class="form-group"><label>備註說明</label><textarea id="camp-remark" placeholder="課程內容、上課時間、注意事項…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeCampModal()">取消</button>
+      <button class="btn btn-primary" id="save-camp-btn" onclick="saveCamp()">✅ 建立班別</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Salary -->
+<div class="modal-overlay" id="salary-modal">
+  <div class="modal">
+    <div class="modal-title">＋ 新增薪資記錄 <button class="modal-close" onclick="closeSalaryModal()">✕</button></div>
+    <div class="form-row">
+      <div class="form-group"><label>治療師姓名 *</label><input id="sal-name" placeholder="例：王治療師"></div>
+      <div class="form-group"><label>月份 *</label><input type="month" id="sal-month"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>薪資項目</label><input id="sal-item" placeholder="例：底薪、課程鐘點費、津貼"></div>
+      <div class="form-group"><label>金額 NT$ *</label><input type="number" id="sal-amount" placeholder="例：35000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>發放狀態</label>
+        <select id="sal-status"><option value="unpaid">待發放</option><option value="paid">已發放</option></select>
+      </div>
+      <div class="form-group"><label>備註</label><input id="sal-note" placeholder="選填"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSalaryModal()">取消</button>
+      <button class="btn btn-primary" id="save-salary-btn" onclick="saveSalary()">✅ 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Archive -->
+<div class="modal-overlay" id="archive-modal">
+  <div class="modal">
+    <div class="modal-title">＋ 新增評鑑文件 <button class="modal-close" onclick="closeArchiveModal()">✕</button></div>
+    <div class="form-row">
+      <div class="form-group"><label>文件名稱 *</label><input id="arc-name" placeholder="例：年度評鑑自評表"></div>
+      <div class="form-group"><label>類別</label>
+        <select id="arc-category">
+          <option>年度評鑑</option><option>機構認證</option><option>人員資格</option><option>課程紀錄</option><option>其他</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>文件日期 *</label><input type="date" id="arc-date"></div>
+      <div class="form-group"><label>負責人</label><input id="arc-owner" placeholder="例：主管、王治療師"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>狀態</label>
+        <select id="arc-status"><option value="pending">待完成</option><option value="done">已完成</option><option value="archived">已歸檔</option></select>
+      </div>
+      <div class="form-group"><label>備註</label><input id="arc-note" placeholder="選填"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeArchiveModal()">取消</button>
+      <button class="btn btn-primary" id="save-archive-btn" onclick="saveArchive()">✅ 儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADMIN_PASSWORD='with';
+const SUPABASE_URL='https://pxtgulqnptzloxbzqzen.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4dGd1bHFucHR6bG94YnpxemVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MzgxOTMsImV4cCI6MjA5MDQxNDE5M30.ChYb01m2AR30zdioKxl975XQ_IFl3lcLXB6SUl0EME0';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let allCamps=[],allEnrollments=[],allAlerts=[],allSalaries=[],allArchives=[],weekCount=0,periodCount=0,currentCampMode='holiday';
+
+// DROPDOWN
+function toggleDropdown(id){
+  const menu=document.getElementById('menu-'+id);
+  document.querySelectorAll('.dropdown-menu').forEach(m=>{if(m!==menu)m.classList.remove('show');});
+  menu.classList.toggle('show');
+}
+function closeDropdowns(){document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('show'));}
+document.addEventListener('click',e=>{if(!e.target.closest('.nav-dropdown'))closeDropdowns();});
+
+// SHOW VIEW
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v)?.classList.add('active');
+  // highlight active nav
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+v)?.classList.add('active');
+  if(v==='salary')renderSalary();
+  if(v==='archive')renderArchive();
+  if(v==='stats')renderStats();
+  closeDropdowns();
+}
+
+function doLogin(){
+  const pwd=document.getElementById('pwd-input').value;
+  if(pwd===ADMIN_PASSWORD){
+    sessionStorage.setItem('admin_auth','1');
+    document.getElementById('login-screen').classList.add('hide');
+    setTimeout(()=>document.getElementById('login-screen').style.display='none',400);
+    document.getElementById('main-header').style.display='flex';
+    initAdmin();
+  }else{
+    document.getElementById('login-err').textContent='密碼錯誤，請重新輸入';
+    const box=document.querySelector('.login-box');
+    box.classList.remove('login-shake');setTimeout(()=>box.classList.add('login-shake'),10);
+    document.getElementById('pwd-input').value='';document.getElementById('pwd-input').focus();
+  }
+}
+function doLogout(){sessionStorage.removeItem('admin_auth');location.reload();}
+async function initAdmin(){
+  const ls=document.getElementById('loading-screen');ls.classList.add('show');
+  await loadAll();startRealtime();
+  setInterval(()=>{const el=document.getElementById('now-time');if(el)el.textContent=new Date().toLocaleString('zh-TW');},1000);
+  ls.classList.add('hide');setTimeout(()=>ls.classList.remove('show'),400);
+}
+function startRealtime(){
+  sb.channel('admin_rt')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'holiday_alerts'},p=>{
+      const a=p.new;
+      if(a.is_pickup)pushNotif('alert',`🚗 提早接走：${a.student_name}`,`${a.pickup_time} 由 ${a.pickup_person} 接走`);
+      else pushNotif('alert',`🚨 緊急通報：${a.student_name}`,a.alert_type||'');
+      loadAlerts();
+    })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'holiday_enrollments'},p=>{
+      pushNotif('enroll','新報名通知',`${p.new.student_name} 完成報名`);loadEnrollments();
+    }).subscribe();
+}
+async function loadAll(){await Promise.all([loadCamps(),loadEnrollments(),loadAlerts(),loadSalaries(),loadArchives()]);}
+async function loadCamps(){const{data}=await sb.from('holiday_camps').select('*').order('created_at',{ascending:false});allCamps=data||[];renderCampsGrid();populateCampFilter();populateStatsFilter();renderDashCampCapacity();}
+async function loadEnrollments(){const{data}=await sb.from('holiday_enrollments').select('*,holiday_camps(name)').order('created_at',{ascending:false});allEnrollments=data||[];renderEnrollTable();renderFinance();renderStats();renderDashStats();renderDashTimeline();updateBadges();}
+async function loadAlerts(){const{data}=await sb.from('holiday_alerts').select('*').order('created_at',{ascending:false});allAlerts=data||[];renderAlerts();renderDashAlertsPreview();renderDashStats();updateBadges();}
+
+function renderDashStats(){
+  document.getElementById('stat-enrolled').textContent=allEnrollments.length;
+  document.getElementById('stat-pending').textContent=allEnrollments.filter(e=>e.status==='pending').length;
+  document.getElementById('stat-alerts').textContent=allAlerts.filter(a=>!a.resolved).length;
+  document.getElementById('stat-camps').textContent=allCamps.filter(c=>c.is_published!==false).length;
+
+  // 課程待辦警示
+  const pendingEnroll=allEnrollments.filter(e=>e.status==='pending');
+  const courseAlert=document.getElementById('dash-course-alert');
+  const courseContent=document.getElementById('dash-course-alert-content');
+  if(pendingEnroll.length){
+    courseAlert.style.display='block';
+    courseContent.innerHTML=pendingEnroll.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--warm);font-size:13px"><span><strong>${e.student_name}</strong> — ${e.holiday_camps?.name||'—'}</span><button class="btn btn-sm btn-green" onclick="confirmEnroll('${e.id}')">✅ 確認</button></div>`).join('');
+  }else{courseAlert.style.display='none';}
+
+  // 通報警示
+  const pendingAlerts=allAlerts.filter(a=>!a.resolved&&!a.is_pickup);
+  const alertSection=document.getElementById('dash-alert-section');
+  const alertContent=document.getElementById('dash-alert-section-content');
+  if(pendingAlerts.length){
+    alertSection.style.display='block';
+    alertContent.innerHTML=pendingAlerts.slice(0,3).map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #fde;font-size:13px"><span><strong>${a.student_name}</strong> — ${a.alert_type}</span><button class="btn btn-sm btn-green" onclick="resolveAlert('${a.id}')">✅ 處理</button></div>`).join('');
+  }else{alertSection.style.display='none';}
+
+  // 行政待辦警示（評鑑待完成）
+  const pendingArchives=allArchives.filter(a=>a.status==='pending');
+  const adminAlert=document.getElementById('dash-admin-alert');
+  const adminContent=document.getElementById('dash-admin-alert-content');
+  if(pendingArchives.length){
+    adminAlert.style.display='block';
+    adminContent.innerHTML=pendingArchives.map(a=>`<div style="font-size:13px;padding:4px 0;border-bottom:1px solid #fde8d0"><strong>${a.name}</strong> — ${a.category} ｜ 截止：${a.doc_date||'未設定'}</div>`).join('');
+  }else{adminAlert.style.display='none';}
+}
+function renderDashTimeline(){
+  const el=document.getElementById('dash-timeline');
+  const items=[...allAlerts.filter(a=>!a.resolved).map(a=>({type:'alert',text:`【通報】${a.student_name} — ${a.alert_type}`,sub:a.description||'',time:fmtTime(a.created_at)})),...allEnrollments.slice(0,3).map(e=>({type:'enroll',text:`${e.student_name} 完成報名`,sub:e.holiday_camps?.name||'',time:fmtTime(e.created_at)}))].slice(0,5);
+  if(!items.length){el.innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:20px">暫無動態</div>';return;}
+  el.innerHTML=items.map(i=>`<div class="tl-item"><div class="tl-dot ${i.type==='alert'?'red':'blue'}">${i.type==='alert'?'⚠️':'📋'}</div><div class="tl-content"><div class="tl-time">${i.time}</div><div class="tl-text" style="${i.type==='alert'?'color:var(--accent)':''}">${i.text}</div><div class="tl-sub">${i.sub}</div></div></div>`).join('');
+}
+function renderDashAlertsPreview(){
+  const el=document.getElementById('dash-alerts-preview');
+  if(!el)return; // 新版 dashboard 已整合到 renderDashStats
+  const pending=allAlerts.filter(a=>!a.resolved&&!a.is_pickup);
+  if(!pending.length){el.innerHTML='<div style="font-size:12px;color:#aaa;text-align:center;padding:10px">無待處理通報 ✅</div>';return;}
+  el.innerHTML=pending.slice(0,2).map(a=>`<div class="alert-box danger" style="margin-bottom:10px"><div style="font-size:20px">${a.alert_type?.split(' ')[0]||'⚠️'}</div><div><div style="font-weight:700;font-size:13px;margin-bottom:3px">${a.student_name} — ${a.alert_type}</div><div style="font-size:12px;color:#555">${a.description||''}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-sm btn-green" onclick="resolveAlert('${a.id}')">✅ 已處理</button><button class="btn btn-sm btn-ghost" onclick="showView('alerts')">查看</button></div></div></div>`).join('');
+}
+function renderDashCampCapacity(){
+  const el=document.getElementById('dash-camp-capacity');
+  if(!allCamps.length){el.innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:10px">尚無班別</div>';return;}
+  el.innerHTML=allCamps.slice(0,4).map(c=>{const pct=c.quota>0?Math.round(c.enrolled/c.quota*100):0;return`<div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${c.type==='summer'?'☀️':'❄️'} ${c.name}</span><span style="font-weight:600;color:${pct>=80?'var(--accent)':'var(--green)'}">${c.enrolled}/${c.quota}</span></div><div class="prog-bar"><div class="prog-fill ${pct>=80?'red':'green'}" style="width:${pct}%"></div></div></div>`;}).join('');
+}
+
+// CAMP MODE SWITCH
+function setCampMode(mode){
+  currentCampMode=mode;const isHoliday=mode==='holiday';
+  document.getElementById('holiday-section').style.display=isHoliday?'block':'none';
+  document.getElementById('period-section').style.display=isHoliday?'none':'block';
+  const sel=document.getElementById('camp-type');
+  if(isHoliday){sel.innerHTML='<option value="summer">☀️ 暑假班</option><option value="winter">❄️ 寒假班</option>';}
+  else{sel.innerHTML='<option value="afterschool">🏫 課後班（平日）</option><option value="theme">🎨 主題課程班</option>';}
+  const base=`padding:10px;border-radius:10px;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;cursor:pointer;`;
+  document.getElementById('mode-btn-holiday').style.cssText=base+`border:2px solid ${isHoliday?'var(--accent2)':'#ddd'};background:${isHoliday?'#eef6fc':'white'};color:${isHoliday?'var(--accent2)':'#888'}`;
+  document.getElementById('mode-btn-period').style.cssText=base+`border:2px solid ${!isHoliday?'var(--orange)':'#ddd'};background:${!isHoliday?'#fff8f0':'white'};color:${!isHoliday?'var(--orange)':'#888'}`;
+}
+
+// PUBLISH TOGGLE SYNC
+function syncToggle(checked){
+  const track=document.getElementById('camp-published-track');
+  const thumb=document.getElementById('camp-published-thumb');
+  track.style.background=checked?'var(--green)':'#ccc';
+  thumb.style.transform=checked?'translateX(22px)':'translateX(0)';
+}
+
+// PERIOD ROWS
+function addPeriodRow(s='',e='',f=''){
+  periodCount++;const n=periodCount;const div=document.createElement('div');div.className='week-row';div.id=`pr-${n}`;
+  div.innerHTML=`<span class="week-label" style="color:var(--orange)">第${n}期</span><input type="date" id="ps-${n}" value="${s}"><input type="date" id="pe-${n}" value="${e}"><input type="number" id="pf-${n}" value="${f}" placeholder="NT$" min="0"><button class="remove-week" onclick="removePeriod(${n})">✕</button>`;
+  document.getElementById('periods-container').appendChild(div);renumberPeriods();
+}
+function removePeriod(n){const el=document.getElementById(`pr-${n}`);if(el)el.remove();renumberPeriods();}
+function renumberPeriods(){document.querySelectorAll('#periods-container .week-row').forEach((r,i)=>r.querySelector('.week-label').textContent=`第${i+1}期`);}
+function getPeriods(){return Array.from(document.querySelectorAll('#periods-container .week-row')).map((r,i)=>{const ins=r.querySelectorAll('input');return{period:i+1,start:ins[0].value,end:ins[1].value,fee:parseInt(ins[2].value)||0};});}
+
+// WEEK ROWS
+function addWeekRow(s='',e='',f=''){
+  weekCount++;const n=weekCount;const div=document.createElement('div');div.className='week-row';div.id=`wr-${n}`;
+  div.innerHTML=`<span class="week-label">第${n}週</span><input type="date" id="ws-${n}" value="${s}"><input type="date" id="we-${n}" value="${e}"><input type="number" id="wf-${n}" value="${f}" placeholder="NT$" min="0"><button class="remove-week" onclick="removeWeek(${n})">✕</button>`;
+  document.getElementById('weeks-container').appendChild(div);renumberWeeks();
+}
+function removeWeek(n){const el=document.getElementById(`wr-${n}`);if(el)el.remove();renumberWeeks();}
+function renumberWeeks(){document.querySelectorAll('#weeks-container .week-row').forEach((r,i)=>r.querySelector('.week-label').textContent=`第${i+1}週`);}
+function getWeeks(){return Array.from(document.querySelectorAll('#weeks-container .week-row')).map((r,i)=>{const ins=r.querySelectorAll('input');return{week:i+1,start:ins[0].value,end:ins[1].value,fee:parseInt(ins[2].value)||0};});}
+
+// CAMPS
+function campTypeInfo(type){
+  const map={summer:{emoji:'☀️',name:'暑假班',color:'var(--accent2)',pill:'pill-summer'},winter:{emoji:'❄️',name:'寒假班',color:'var(--accent2)',pill:'pill-winter'},afterschool:{emoji:'🏫',name:'課後班',color:'var(--orange)',pill:''},theme:{emoji:'🎨',name:'主題課程班',color:'#8b5cf6',pill:''}};
+  return map[type]||{emoji:'📋',name:type,color:'#888',pill:''};
+}
+function isPeriodType(type){return type==='afterschool'||type==='theme';}
+
+function renderCampsGrid(){
+  const grid=document.getElementById('camps-grid');
+  if(!allCamps.length){grid.innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:40px;grid-column:1/-1">尚無班別，點「新增班別」開始</div>';return;}
+  grid.innerHTML=allCamps.map(c=>{
+    const left=c.quota-c.enrolled,pct=c.quota>0?Math.round(c.enrolled/c.quota*100):0;
+    const isPeriod=isPeriodType(c.type);
+    const items=isPeriod?(c.periods||[]):(c.weeks||[]);
+    const lbl=isPeriod?'期':'週';
+    const totalAll=items.reduce((s,w)=>s+w.fee,0);
+    const ti=campTypeInfo(c.type);
+    const published=c.is_published!==false;
+    return`<div class="camp-card" style="position:relative;overflow:hidden;opacity:${published?1:0.65}">
+      <div style="position:absolute;top:0;left:0;right:0;height:4px;background:${ti.color}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:8px">
+        <div class="camp-name">${ti.emoji} ${c.name}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          ${published
+            ?'<span class="pill" style="background:#d1fae5;color:#065f46">📢 已開放</span>'
+            :'<span class="pill" style="background:#f1f5f9;color:#94a3b8">🔒 未開放</span>'}
+          <span class="pill" style="background:${ti.color}22;color:${ti.color}">${ti.name}</span>
+        </div>
+      </div>
+      <div class="camp-meta" style="margin-top:6px">
+        ${items.map((w,i)=>`<span style="font-weight:600;color:var(--ink)">第${i+1}${lbl}</span> ${w.start}～${w.end}　<span style="color:${ti.color};font-weight:600">NT$${w.fee.toLocaleString()}</span>`).join('<br>')}
+        ${items.length>1?`<br><span style="color:#888">全${lbl}合計：NT$${totalAll.toLocaleString()}</span>`:''}
+        ${!isPeriod&&c.fullterm_price?`<br>🗓️ 全期報名：<strong style="color:var(--green)">NT$${Number(c.fullterm_price).toLocaleString()}</strong>${c.fullterm_desc?' （'+c.fullterm_desc+'）':''}`:'' }
+        ${!isPeriod&&c.discount_amount?`<br>🎁 滿20天折抵：<strong style="color:var(--accent2)">NT$${Number(c.discount_amount).toLocaleString()}</strong>${c.discount_desc?' （'+c.discount_desc+'）':''}`:'' }
+        ${!isPeriod&&c.discount_amount_40?`<br>🎁 滿40天折抵：<strong style="color:var(--green)">NT$${Number(c.discount_amount_40).toLocaleString()}</strong>${c.discount_desc_40?' （'+c.discount_desc_40+'）':''}`:'' }
+        ${c.deadline?`<br>📌 截止：${c.deadline}`:''}
+      </div>
+      ${c.remark?`<div style="font-size:11px;color:#aaa;margin-top:6px;font-style:italic">${c.remark}</div>`:''}
+      <div style="margin-top:10px;font-size:12px;font-weight:600;color:${left<=2?'var(--accent)':'var(--green)'}">名額：${c.enrolled}/${c.quota}
+        <div class="prog-bar"><div class="prog-fill ${left<=2?'red':'green'}" style="width:${pct}%"></div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-blue" onclick="editCamp('${c.id}')">✏️ 編輯</button>
+        <button class="btn btn-sm ${published?'btn-ghost':'btn-green'}" onclick="togglePublish('${c.id}',${!published})">${published?'🔒 下架':'📢 開放報名'}</button>
+        <button class="btn btn-sm btn-ghost" onclick="deleteCamp('${c.id}')">🗑️ 刪除</button>
+        ${left===0?'<span class="pill" style="background:#fde;color:var(--accent);padding:5px 10px">額滿</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function populateCampFilter(){const sel=document.getElementById('filter-camp');const cur=sel.value;sel.innerHTML='<option value="">所有班別</option>'+allCamps.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');sel.value=cur;}
+
+function openCampModal(editId=null){
+  weekCount=0;periodCount=0;
+  document.getElementById('weeks-container').innerHTML='';
+  document.getElementById('periods-container').innerHTML='';
+  ['camp-name','camp-fullterm-price','camp-fullterm-desc','camp-discount-amount','camp-discount-desc','camp-discount-amount-40','camp-discount-desc-40','camp-remark'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('camp-quota').value='10';document.getElementById('camp-deadline').value='';
+  document.getElementById('camp-published').checked=true;syncToggle(true);
+  document.getElementById('camp-published').onchange=function(){syncToggle(this.checked);};
+  document.getElementById('save-camp-btn').dataset.editId='';
+
+  if(editId){
+    // 編輯模式：填入現有資料
+    const c=allCamps.find(x=>x.id===editId);
+    if(!c)return;
+    document.getElementById('modal-title-text').textContent='✏️ 編輯班別';
+    document.getElementById('save-camp-btn').textContent='💾 儲存修改';
+    document.getElementById('save-camp-btn').dataset.editId=editId;
+    document.getElementById('camp-name').value=c.name||'';
+    document.getElementById('camp-quota').value=c.quota||10;
+    document.getElementById('camp-deadline').value=c.deadline||'';
+    document.getElementById('camp-remark').value=c.remark||'';
+    document.getElementById('camp-published').checked=c.is_published!==false;
+    syncToggle(c.is_published!==false);
+    document.getElementById('camp-published').onchange=function(){syncToggle(this.checked);};
+    const isPeriod=isPeriodType(c.type);
+    setCampMode(isPeriod?'period':'holiday');
+    // set type
+    document.getElementById('camp-type').value=c.type;
+    if(isPeriod){
+      (c.periods||[]).forEach(p=>addPeriodRow(p.start,p.end,p.fee));
+    }else{
+      document.getElementById('camp-fullterm-price').value=c.fullterm_price||'';
+      document.getElementById('camp-fullterm-desc').value=c.fullterm_desc||'';
+      document.getElementById('camp-discount-amount').value=c.discount_amount||'';
+      document.getElementById('camp-discount-desc').value=c.discount_desc||'';
+      document.getElementById('camp-discount-amount-40').value=c.discount_amount_40||'';
+      document.getElementById('camp-discount-desc-40').value=c.discount_desc_40||'';
+      (c.weeks||[]).forEach(w=>addWeekRow(w.start,w.end,w.fee));
+    }
+  }else{
+    document.getElementById('modal-title-text').textContent='＋ 新增班別';
+    document.getElementById('save-camp-btn').innerHTML='✅ 建立班別';
+    setCampMode('holiday');addWeekRow();
+  }
+  document.getElementById('camp-modal').classList.add('show');
+}
+
+function editCamp(id){openCampModal(id);}
+function closeCampModal(){document.getElementById('camp-modal').classList.remove('show');}
+
+async function togglePublish(id,publish){
+  await sb.from('holiday_camps').update({is_published:publish}).eq('id',id);
+  await loadCamps();
+  pushNotif('ok',publish?'班別已開放':'班別已下架',publish?'家屬端現在可以看到此班別':'此班別已從家屬端隱藏');
+}
+
+async function saveCamp(){
+  const name=document.getElementById('camp-name').value.trim();
+  if(!name){alert('請填寫班別名稱');return;}
+  const isPeriod=currentCampMode==='period';
+  let weeks=[],periods=[];
+  if(isPeriod){
+    periods=getPeriods();
+    if(!periods.length){alert('請至少新增一期');return;}
+    if(periods.find(p=>!p.start||!p.end)){alert('請確認每期日期都已填寫');return;}
+  }else{
+    weeks=getWeeks();
+    if(!weeks.length){alert('請至少新增一週');return;}
+    if(weeks.find(w=>!w.start||!w.end)){alert('請確認每週日期都已填寫');return;}
+  }
+  const btn=document.getElementById('save-camp-btn');
+  const editId=btn.dataset.editId;
+  btn.disabled=true;btn.innerHTML='<div class="spinner"></div> 儲存中…';
+  const payload={
+    name,type:document.getElementById('camp-type').value,
+    quota:parseInt(document.getElementById('camp-quota').value),
+    deadline:document.getElementById('camp-deadline').value||null,
+    fullterm_price:!isPeriod?(parseInt(document.getElementById('camp-fullterm-price').value)||null):null,
+    fullterm_desc:!isPeriod?document.getElementById('camp-fullterm-desc').value.trim():null,
+    discount_amount:!isPeriod?(parseInt(document.getElementById('camp-discount-amount').value)||null):null,
+    discount_desc:!isPeriod?document.getElementById('camp-discount-desc').value.trim():null,
+    discount_amount_40:!isPeriod?(parseInt(document.getElementById('camp-discount-amount-40').value)||null):null,
+    discount_desc_40:!isPeriod?document.getElementById('camp-discount-desc-40').value.trim():null,
+    remark:document.getElementById('camp-remark').value.trim(),
+    weeks:isPeriod?[]:weeks,periods:isPeriod?periods:[],
+    is_published:document.getElementById('camp-published').checked
+  };
+  let error;
+  if(editId){
+    ({error}=await sb.from('holiday_camps').update(payload).eq('id',editId));
+  }else{
+    ({error}=await sb.from('holiday_camps').insert({...payload,enrolled:0}));
+  }
+  btn.disabled=false;btn.innerHTML=editId?'💾 儲存修改':'✅ 建立班別';
+  if(error){alert('儲存失敗：'+error.message);return;}
+  closeCampModal();await loadCamps();
+  pushNotif('ok',editId?'班別已更新':'班別已建立',editId?`${name} 修改已儲存`:`${name} 成功建立，共 ${isPeriod?periods.length:weeks.length} ${isPeriod?'期':'週'}`);
+}
+async function deleteCamp(id){if(!confirm('確定要刪除這個班別？'))return;await sb.from('holiday_camps').delete().eq('id',id);await loadCamps();}
+
+// ENROLL
+function itemLabel(e){
+  const sw=e.selected_weeks||[];
+  if(!sw.length)return'—';
+  // detect period vs week
+  const isP=sw[0]&&sw[0].period!==undefined;
+  return sw.map(w=>isP?`第${w.period}期`:`第${w.week}週`).join('、')+(e.is_monthly?'（全期報名）':e.discount&&e.discount!=='無'?'（'+e.discount+'）':'');
+}
+
+function statusBadge(status){
+  if(status==='confirmed')return'<span class="pill pill-ok">已確認</span>';
+  if(status==='rejected')return'<span class="pill" style="background:#fde;color:var(--accent)">已拒絕</span>';
+  return'<span class="pill pill-wait">待確認</span>';
+}
+
+function renderEnrollTable(){
+  const tb=document.getElementById('enroll-table-body');
+  let rows=allEnrollments;
+  const cf=document.getElementById('filter-camp')?.value||'';
+  const sf=document.getElementById('filter-status')?.value||'';
+  if(cf)rows=rows.filter(e=>e.camp_id===cf);
+  if(sf)rows=rows.filter(e=>e.status===sf);
+  if(!rows.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:#aaa;padding:30px">尚無報名資料</td></tr>';return;}
+  tb.innerHTML=rows.map(e=>{
+    const hasMeds=e.medications&&e.medications!=='無'&&e.medications!=='';
+    return`<tr>
+      <td><strong>${e.student_name}</strong><br><span style="font-size:11px;color:#aaa">${fmtTime(e.created_at)}</span></td>
+      <td style="font-size:12px">${e.holiday_camps?.name||'—'}</td>
+      <td style="font-size:12px">${itemLabel(e)}</td>
+      <td style="font-size:12px">${e.family_relation||''} ${e.contact_phone||''}</td>
+      <td>${hasMeds?`<span style="color:var(--orange)">💊 有</span> ${e.has_signature?'<span class="pill pill-ok" style="font-size:10px">✍️已簽</span>':'<span class="pill pill-alert" style="font-size:10px">未簽</span>'}`:'<span style="color:#aaa">無</span>'}</td>
+      <td>NT$${(e.fee||0).toLocaleString()}</td>
+      <td>${statusBadge(e.status)}</td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${e.status==='pending'?`
+          <button class="btn btn-sm btn-green" onclick="confirmEnroll('${e.id}')">✅ 確認</button>
+          <button class="btn btn-sm btn-ghost" style="color:var(--accent)" onclick="rejectEnroll('${e.id}','${e.student_name}')">✕ 拒絕</button>
+        `:''}
+        ${e.status==='confirmed'?`<button class="btn btn-sm btn-blue" onclick="showReceipt('${e.id}')">🧾 收費單</button>`:''}
+        ${e.status==='rejected'?`<span style="font-size:11px;color:#aaa">已拒絕</span>`:''}
+        <button class="btn btn-sm btn-ghost" onclick="deleteEnroll('${e.id}')">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function confirmEnroll(id){
+  await sb.from('holiday_enrollments').update({status:'confirmed'}).eq('id',id);
+  await loadEnrollments();
+  pushNotif('ok','報名已確認','收費單可在報名管理中產生');
+}
+
+async function rejectEnroll(id, name){
+  if(!confirm(`確定拒絕 ${name} 的報名？`))return;
+  await sb.from('holiday_enrollments').update({status:'rejected'}).eq('id',id);
+  await loadEnrollments();
+  pushNotif('ok','報名已拒絕',`${name} 的報名已標記為拒絕`);
+}
+
+async function deleteEnroll(id){if(!confirm('確定刪除此報名？'))return;await sb.from('holiday_enrollments').delete().eq('id',id);await loadEnrollments();}
+
+// ===== RECEIPT 收費單 =====
+const BANK_INFO={bank:'永豐銀行',branch:'正義分行',account:'12801801888088',name:'祈癒職能治療所'};
+
+function showReceipt(id){
+  const e=allEnrollments.find(x=>x.id===id);
+  if(!e)return;
+  const camp=allCamps.find(c=>c.id===e.camp_id);
+  const issueDate=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+  const items=itemLabel(e);
+  const receiptNo=`QY-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+
+  document.getElementById('receipt-content').innerHTML=`
+    <!-- 標題 -->
+    <div style="text-align:center;margin-bottom:20px;border-bottom:2px solid var(--ink);padding-bottom:16px">
+      <div style="font-size:11px;color:#888;letter-spacing:2px;margin-bottom:4px">RECEIPT</div>
+      <div style="font-family:'Noto Serif TC',serif;font-size:20px;font-weight:700">祈癒職能治療所</div>
+      <div style="font-size:13px;color:#666;margin-top:4px">課程報名收費通知單</div>
+    </div>
+
+    <!-- 單號與日期 -->
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:18px">
+      <span>單號：<strong style="color:var(--ink)">${receiptNo}</strong></span>
+      <span>開立日期：${issueDate}</span>
+    </div>
+
+    <!-- 學員資訊 -->
+    <div style="background:var(--paper);border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid var(--warm)">
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:1px">學員資訊</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+        <div><span style="color:#888">學員姓名</span><br><strong>${e.student_name}</strong></div>
+        <div><span style="color:#888">家屬關係</span><br><strong>${e.family_relation||'—'}</strong></div>
+        <div><span style="color:#888">聯絡電話</span><br><strong>${e.contact_phone||'—'}</strong></div>
+        <div><span style="color:#888">報名日期</span><br><strong>${new Date(e.created_at).toLocaleDateString('zh-TW')}</strong></div>
+      </div>
+    </div>
+
+    <!-- 課程明細 -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:1px">課程明細</div>
+      <div style="border:1px solid var(--warm);border-radius:10px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--paper);font-size:11px;font-weight:700;color:#888">
+          <span>課程</span><span>週次/期別</span><span>金額</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px;font-size:13px">
+          <span style="flex:1;font-weight:600">${camp?.name||e.holiday_camps?.name||'—'}</span>
+          <span style="flex:1;text-align:center;color:#666;font-size:12px">${items}</span>
+          <span style="font-weight:700;color:var(--accent2)">NT$${(e.fee||0).toLocaleString()}</span>
+        </div>
+        ${e.is_monthly?`<div style="padding:6px 14px;background:#f0fdf4;font-size:12px;color:var(--green)">🗓️ 全期報名優惠已套用</div>`:''}
+        ${!e.is_monthly&&e.discount&&e.discount!=='無'?`<div style="padding:6px 14px;background:#eef6fc;font-size:12px;color:var(--accent2)">🎁 ${e.discount}</div>`:''}
+        <div style="display:flex;justify-content:space-between;padding:12px 14px;border-top:2px solid var(--ink);font-weight:700;font-size:15px">
+          <span>合計應繳</span>
+          <span style="color:var(--accent)">NT$${(e.fee||0).toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 繳費方式 -->
+    <div style="background:#eef6fc;border-radius:10px;padding:14px;margin-bottom:16px;border:1.5px solid #aed6f1">
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:10px;letter-spacing:1px">💳 繳費方式 — 銀行轉帳</div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:6px;font-size:13px;line-height:1.8">
+        <span style="color:#888">銀行</span><strong>${BANK_INFO.bank}</strong>
+        <span style="color:#888">分行</span><strong>${BANK_INFO.branch}</strong>
+        <span style="color:#888">帳號</span><strong style="font-size:15px;letter-spacing:2px;color:var(--accent2)">${BANK_INFO.account}</strong>
+        <span style="color:#888">戶名</span><strong>${BANK_INFO.name}</strong>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#888;background:white;border-radius:6px;padding:8px">
+        ⚠️ 請於繳費後回傳轉帳截圖，並在備註欄填寫學員姓名「${e.student_name}」，謝謝！
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div style="text-align:center;font-size:11px;color:#aaa;border-top:1px dashed #ddd;padding-top:14px">
+      祈癒職能治療所｜如有任何疑問請聯繫治療師<br>
+      本收費單由系統自動產生，截圖後可傳送給家屬
+    </div>
+  `;
+  document.getElementById('receipt-modal').classList.add('show');
+}
+
+function closeReceiptModal(){document.getElementById('receipt-modal').classList.remove('show');}
+
+// STATS
+function calcDaysAdmin(start,end){
+  const d1=new Date(start),d2=new Date(end);
+  if(isNaN(d1)||isNaN(d2))return 0;
+  return Math.round((d2-d1)/86400000)+1;
+}
+
+function populateStatsFilter(){
+  const sel=document.getElementById('stats-filter-camp');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">所有班別</option>'+allCamps.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  sel.value=cur;
+}
+
+function renderStats(){
+  const campFilter=document.getElementById('stats-filter-camp')?.value||'';
+  const confirmed=allEnrollments.filter(e=>e.status==='confirmed'&&(!campFilter||e.camp_id===campFilter));
+
+  // 收集所有週次（跨報名）
+  // 先建立 campId -> camp 對照
+  const campMap={};
+  allCamps.forEach(c=>{campMap[c.id]=c;});
+
+  // 建立週次 key -> { week info, students[] }
+  const weekMap={};
+  confirmed.forEach(e=>{
+    const camp=campMap[e.camp_id];
+    if(!camp)return;
+    const isPeriod=camp.type==='afterschool'||camp.type==='theme';
+    const sw=e.selected_weeks||[];
+    sw.forEach(w=>{
+      const key=isPeriod
+        ?`${e.camp_id}_p${w.period}`
+        :`${e.camp_id}_w${w.week}`;
+      if(!weekMap[key]){
+        weekMap[key]={
+          campName:camp.name,
+          campId:e.camp_id,
+          label:isPeriod?`第${w.period}期`:`第${w.week}週`,
+          start:w.start||'',
+          end:w.end||'',
+          days:(!isPeriod&&w.start&&w.end)?calcDaysAdmin(w.start,w.end):0,
+          isPeriod,
+          sortKey:isPeriod?(w.period||0):(w.week||0),
+          students:[]
+        };
+      }
+      weekMap[key].students.push(e.student_name);
+    });
+  });
+
+  const weeks=Object.values(weekMap).sort((a,b)=>{
+    if(a.campId!==b.campId)return a.campId.localeCompare(b.campId);
+    return a.sortKey-b.sortKey;
+  });
+
+  // 統計數字
+  const totalEnroll=confirmed.length;
+  const totalPersonWeeks=weeks.reduce((s,w)=>s+w.students.length,0);
+  const totalDays=weeks.reduce((s,w)=>s+(w.days*w.students.length),0);
+  const totalWeeks=weeks.length;
+
+  document.getElementById('stats-total-enroll').textContent=totalEnroll;
+  document.getElementById('stats-total-person-weeks').textContent=totalPersonWeeks;
+  document.getElementById('stats-total-days').textContent=totalDays||'—';
+  document.getElementById('stats-total-weeks').textContent=totalWeeks;
+
+  const content=document.getElementById('stats-content');
+  if(!weeks.length){
+    content.innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:30px">尚無已確認報名資料</div>';
+    return;
+  }
+
+  // Group by camp
+  const byCamp={};
+  weeks.forEach(w=>{
+    if(!byCamp[w.campId])byCamp[w.campId]={name:w.campName,weeks:[]};
+    byCamp[w.campId].weeks.push(w);
+  });
+
+  content.innerHTML=Object.values(byCamp).map(camp=>`
+    <div style="margin-bottom:24px">
+      <div style="font-family:'Noto Serif TC',serif;font-size:14px;font-weight:700;color:var(--ink);padding:8px 12px;background:var(--paper);border-radius:8px;margin-bottom:10px;border-left:4px solid var(--accent2)">
+        ${camp.name}
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>週次/期別</th>
+              <th>期間</th>
+              <th style="text-align:center">天數</th>
+              <th style="text-align:center">人次</th>
+              <th>參加學員</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${camp.weeks.map(w=>`
+              <tr>
+                <td><strong style="color:var(--accent2)">${w.label}</strong></td>
+                <td style="font-size:12px;color:#888">${w.start}${w.end&&w.end!==w.start?' ～ '+w.end:''}</td>
+                <td style="text-align:center;font-weight:600">${w.days||'—'}</td>
+                <td style="text-align:center">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;background:var(--accent2);color:white;font-weight:700;font-size:13px;min-width:28px;height:28px;border-radius:14px;padding:0 8px">
+                    ${w.students.length}
+                  </span>
+                </td>
+                <td style="font-size:13px">
+                  ${w.students.map((s,i)=>`<span style="display:inline-block;background:var(--paper);border:1px solid var(--warm);border-radius:6px;padding:2px 8px;margin:2px;font-size:12px">${i+1}. ${s}</span>`).join('')}
+                </td>
+              </tr>
+            `).join('')}
+            <tr style="background:var(--paper)">
+              <td colspan="3" style="font-weight:700;font-size:13px">合計</td>
+              <td style="text-align:center;font-weight:700;font-size:15px;color:var(--accent)">
+                ${camp.weeks.reduce((s,w)=>s+w.students.length,0)}
+              </td>
+              <td style="font-size:12px;color:#888">人次</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `).join('');
+}
+
+function exportStatsText(){
+  const campFilter=document.getElementById('stats-filter-camp')?.value||'';
+  const confirmed=allEnrollments.filter(e=>e.status==='confirmed'&&(!campFilter||e.camp_id===campFilter));
+  const campMap={};allCamps.forEach(c=>{campMap[c.id]=c;});
+  const weekMap={};
+  confirmed.forEach(e=>{
+    const camp=campMap[e.camp_id];if(!camp)return;
+    const isPeriod=camp.type==='afterschool'||camp.type==='theme';
+    (e.selected_weeks||[]).forEach(w=>{
+      const key=isPeriod?`${e.camp_id}_p${w.period}`:`${e.camp_id}_w${w.week}`;
+      if(!weekMap[key])weekMap[key]={campName:camp.name,label:isPeriod?`第${w.period}期`:`第${w.week}週`,start:w.start||'',end:w.end||'',students:[]};
+      weekMap[key].students.push(e.student_name);
+    });
+  });
+  const weeks=Object.values(weekMap);
+  if(!weeks.length){alert('尚無資料');return;}
+  const today=new Date().toLocaleDateString('zh-TW');
+  let text=`📊 出席統計表｜${today}\n${'═'.repeat(35)}\n`;
+  const byCamp={};
+  weeks.forEach(w=>{if(!byCamp[w.campName])byCamp[w.campName]=[];byCamp[w.campName].push(w);});
+  Object.entries(byCamp).forEach(([name,ws])=>{
+    text+=`\n【${name}】\n${'─'.repeat(30)}\n`;
+    ws.forEach(w=>{
+      text+=`${w.label}　${w.start}${w.end&&w.end!==w.start?'～'+w.end:''}　共${w.students.length}人\n`;
+      w.students.forEach((s,i)=>text+=`  ${i+1}. ${s}\n`);
+    });
+    text+=`合計人次：${ws.reduce((s,w)=>s+w.students.length,0)}\n`;
+  });
+  text+=`\n總人次：${weeks.reduce((s,w)=>s+w.students.length,0)}`;
+  navigator.clipboard?.writeText(text).then(()=>pushNotif('ok','已複製！','統計表已複製，可貼到 LINE 或文件')).catch(()=>alert(text));
+}
+
+// FINANCE
+function renderFinance(){
+  const confirmed=allEnrollments.filter(e=>e.status==='confirmed');
+  const total=confirmed.reduce((s,e)=>s+(e.fee||0),0);
+  const paid=confirmed.filter(e=>e.paid).reduce((s,e)=>s+(e.fee||0),0);
+  document.getElementById('fin-total').textContent='NT$'+total.toLocaleString();
+  document.getElementById('fin-paid').textContent='NT$'+paid.toLocaleString();
+  document.getElementById('fin-unpaid').textContent='NT$'+(total-paid).toLocaleString();
+  document.getElementById('fin-count').textContent=confirmed.length;
+  const tb=document.getElementById('finance-table');
+  if(!confirmed.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">尚無已確認報名</td></tr>';return;}
+  tb.innerHTML=confirmed.map(e=>{
+    const hasMeds=e.medications&&e.medications!=='無'&&e.medications!=='';
+    return`<tr>
+      <td>${e.student_name}</td>
+      <td style="font-size:12px">${e.holiday_camps?.name||'—'}</td>
+      <td style="font-size:12px">${itemLabel(e)}</td>
+      <td style="font-weight:600">NT$${(e.fee||0).toLocaleString()}</td>
+      <td>${hasMeds?(e.has_signature?'<span class="pill pill-ok">✍️ 已簽署</span>':'<span class="pill pill-alert">⚠️ 未簽</span>'):'<span style="color:#aaa;font-size:12px">不需要</span>'}</td>
+      <td><span class="pill ${e.paid?'pill-ok':'pill-wait'}">${e.paid?'已繳費':'未繳費'}</span></td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-sm btn-blue" onclick="showReceipt('${e.id}')">🧾 收費單</button>
+        <button class="btn btn-sm ${e.paid?'btn-ghost':'btn-green'}" onclick="togglePaid('${e.id}',${!e.paid})">${e.paid?'取消':'已繳費'}</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+async function togglePaid(id,paid){await sb.from('holiday_enrollments').update({paid}).eq('id',id);await loadEnrollments();}
+function renderAlerts(){
+  const pickups=allAlerts.filter(a=>a.is_pickup&&!a.resolved);
+  const pending=allAlerts.filter(a=>!a.resolved&&!a.is_pickup);
+  const resolved=allAlerts.filter(a=>a.resolved);
+  document.getElementById('pickup-list').innerHTML=!pickups.length?'<div style="font-size:13px;color:#aaa;text-align:center;padding:10px">今日尚無提早接走通報</div>':pickups.map(p=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--paper);border-radius:10px;margin-bottom:8px;border:1px solid var(--warm)"><div style="font-size:20px">🚗</div><div style="flex:1;font-size:13px"><div style="font-weight:700">${p.student_name}</div><div style="color:#555;margin-top:2px">接走時間：<strong style="color:var(--accent2)">${p.pickup_time}</strong> ｜ 接走人：<strong>${p.pickup_person}</strong>${p.pickup_reason?` ｜ 原因：${p.pickup_reason}`:''}</div></div><button class="btn btn-sm btn-green" onclick="resolveAlert('${p.id}')">✅ 完成</button></div>`).join('');
+  document.getElementById('pending-alerts').innerHTML=!pending.length?'<div style="font-size:13px;color:#aaa;text-align:center;padding:16px">無待處理通報 ✅</div>':pending.map(a=>`<div class="alert-box danger" style="margin-bottom:12px"><div style="font-size:22px">${a.alert_type?.split(' ')[0]||'⚠️'}</div><div style="flex:1"><div style="font-weight:700;margin-bottom:4px">${a.student_name} — ${a.alert_type}</div><div style="font-size:12px;color:#555;line-height:1.6">${a.description||''}</div><div style="font-size:11px;color:#aaa;margin-top:4px">📞 ${a.contact_phone||'—'} ｜ 🕐 ${fmtTime(a.created_at)}</div><div style="margin-top:8px"><button class="btn btn-sm btn-green" onclick="resolveAlert('${a.id}')">✅ 標記已處理</button></div></div></div>`).join('');
+  document.getElementById('resolved-alerts').innerHTML=!resolved.length?'<div style="font-size:13px;color:#aaa;text-align:center;padding:16px">無已處理通報</div>':resolved.map(a=>`<div style="padding:12px;border-bottom:1px solid var(--warm);font-size:13px;display:flex;gap:12px"><div style="font-size:18px">${a.is_pickup?'🚗':(a.alert_type?.split(' ')[0]||'✅')}</div><div><div style="font-weight:600">${a.student_name} — ${a.alert_type}</div><div style="color:#888;font-size:12px;margin-top:2px">${a.description||a.pickup_reason||''}</div><div style="font-size:11px;color:#aaa;margin-top:2px">${fmtTime(a.created_at)}</div></div><span class="pill pill-ok" style="margin-left:auto;flex-shrink:0">已處理</span></div>`).join('');
+}
+async function resolveAlert(id){await sb.from('holiday_alerts').update({resolved:true}).eq('id',id);await loadAlerts();pushNotif('ok','已處理','通報已標記為已處理');}
+function exportPickupList(){
+  const pickups=allAlerts.filter(a=>a.is_pickup&&!a.resolved);
+  if(!pickups.length){alert('目前沒有提早接走通報');return;}
+  let text=`📋 ${new Date().toLocaleDateString('zh-TW')} 提早接走名單\n${'─'.repeat(26)}\n`;
+  pickups.forEach((p,i)=>{text+=`${i+1}. ${p.student_name}\n   接走時間：${p.pickup_time}\n   接走人：${p.pickup_person}\n`;if(p.pickup_reason)text+=`   原因：${p.pickup_reason}\n`;if(p.contact_phone)text+=`   電話：${p.contact_phone}\n`;text+='\n';});
+  navigator.clipboard?.writeText(text).then(()=>pushNotif('ok','已複製！','可直接貼給老師')).catch(()=>alert(text));
+}
+
+// FINANCE
+function renderFinance(){
+  const total=allEnrollments.reduce((s,e)=>s+(e.fee||0),0);
+  const paid=allEnrollments.filter(e=>e.paid).reduce((s,e)=>s+(e.fee||0),0);
+  document.getElementById('fin-total').textContent='NT$'+total.toLocaleString();
+  document.getElementById('fin-paid').textContent='NT$'+paid.toLocaleString();
+  document.getElementById('fin-unpaid').textContent='NT$'+(total-paid).toLocaleString();
+  document.getElementById('fin-count').textContent=allEnrollments.length;
+  const tb=document.getElementById('finance-table');
+  if(!allEnrollments.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">尚無資料</td></tr>';return;}
+  tb.innerHTML=allEnrollments.map(e=>{
+    const hasMeds=e.medications&&e.medications!=='無'&&e.medications!=='';
+    const sw=e.selected_weeks||[];
+    return`<tr><td>${e.student_name}</td><td style="font-size:12px">${e.holiday_camps?.name||'—'}</td><td style="font-size:12px">${sw.map(w=>`第${w.week}週`).join('、')||'—'}${e.is_monthly?'<br><span class="pill" style="background:#d1fae5;color:#065f46;font-size:10px">整月優惠</span>':''}</td><td>NT$${(e.fee||0).toLocaleString()}</td><td>${hasMeds?(e.has_signature?'<span class="pill pill-ok">✍️ 已簽署</span>':'<span class="pill pill-alert">⚠️ 未簽</span>'):'<span style="color:#aaa;font-size:12px">不需要</span>'}</td><td><span class="pill ${e.paid?'pill-ok':'pill-wait'}">${e.paid?'已繳費':'未繳費'}</span></td><td><button class="btn btn-sm ${e.paid?'btn-ghost':'btn-green'}" onclick="togglePaid('${e.id}',${!e.paid})">${e.paid?'取消繳費':'標記已繳'}</button></td></tr>`;
+  }).join('');
+}
+async function togglePaid(id,paid){await sb.from('holiday_enrollments').update({paid}).eq('id',id);await loadEnrollments();}
+
+// SALARY
+async function loadSalaries(){
+  const{data}=await sb.from('admin_salaries').select('*').order('created_at',{ascending:false});
+  allSalaries=data||[];renderSalary();renderDashStats();
+}
+function renderSalary(){
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthly=allSalaries.filter(s=>s.month===thisMonth);
+  const total=monthly.reduce((s,r)=>s+(r.amount||0),0);
+  const paid=monthly.filter(r=>r.status==='paid').reduce((s,r)=>s+(r.amount||0),0);
+  const names=new Set(allSalaries.map(r=>r.therapist_name));
+  document.getElementById('sal-total').textContent='NT$'+total.toLocaleString();
+  document.getElementById('sal-paid').textContent='NT$'+paid.toLocaleString();
+  document.getElementById('sal-unpaid').textContent='NT$'+(total-paid).toLocaleString();
+  document.getElementById('sal-count').textContent=names.size;
+  const tb=document.getElementById('salary-table');
+  if(!allSalaries.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">尚無薪資記錄</td></tr>';return;}
+  tb.innerHTML=allSalaries.map(r=>`<tr>
+    <td><strong>${r.therapist_name}</strong></td>
+    <td>${r.month||'—'}</td>
+    <td>${r.item||'—'}</td>
+    <td style="font-weight:600">NT$${(r.amount||0).toLocaleString()}</td>
+    <td><span class="pill ${r.status==='paid'?'pill-ok':'pill-wait'}">${r.status==='paid'?'已發放':'待發放'}</span></td>
+    <td style="font-size:12px;color:#888">${r.note||''}</td>
+    <td><div style="display:flex;gap:4px">
+      ${r.status==='unpaid'?`<button class="btn btn-sm btn-green" onclick="markSalaryPaid('${r.id}')">✅ 標記已發</button>`:''}
+      <button class="btn btn-sm btn-ghost" onclick="deleteSalary('${r.id}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+function openSalaryModal(){
+  ['sal-name','sal-item','sal-amount','sal-note'].forEach(id=>document.getElementById(id).value='');
+  const now=new Date();
+  document.getElementById('sal-month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('salary-modal').classList.add('show');
+}
+function closeSalaryModal(){document.getElementById('salary-modal').classList.remove('show');}
+async function saveSalary(){
+  const name=document.getElementById('sal-name').value.trim();
+  const amount=parseInt(document.getElementById('sal-amount').value);
+  if(!name||!amount){alert('請填寫治療師姓名與金額');return;}
+  const btn=document.getElementById('save-salary-btn');
+  btn.disabled=true;btn.innerHTML='<div class="spinner"></div>';
+  const{error}=await sb.from('admin_salaries').insert({
+    therapist_name:name,month:document.getElementById('sal-month').value,
+    item:document.getElementById('sal-item').value.trim(),amount,
+    status:document.getElementById('sal-status').value,
+    note:document.getElementById('sal-note').value.trim()
+  });
+  btn.disabled=false;btn.innerHTML='✅ 儲存';
+  if(error){alert('儲存失敗：'+error.message);return;}
+  closeSalaryModal();await loadSalaries();pushNotif('ok','薪資已新增',`${name} 薪資記錄已儲存`);
+}
+async function markSalaryPaid(id){await sb.from('admin_salaries').update({status:'paid'}).eq('id',id);await loadSalaries();}
+async function deleteSalary(id){if(!confirm('確定刪除此記錄？'))return;await sb.from('admin_salaries').delete().eq('id',id);await loadSalaries();}
+
+// ARCHIVE
+async function loadArchives(){
+  const{data}=await sb.from('admin_archives').select('*').order('created_at',{ascending:false});
+  allArchives=data||[];renderArchive();renderDashStats();
+}
+function renderArchive(){
+  const tb=document.getElementById('archive-table');
+  if(!allArchives.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#aaa;padding:30px">尚無歸檔文件</td></tr>';return;}
+  tb.innerHTML=allArchives.map(a=>`<tr>
+    <td><strong>${a.name}</strong></td>
+    <td><span class="pill" style="background:#f3e8ff;color:#7c3aed;font-size:11px">${a.category||'其他'}</span></td>
+    <td style="font-size:12px">${a.doc_date||'—'}</td>
+    <td style="font-size:12px">${a.owner||'—'}</td>
+    <td><span class="pill ${a.status==='done'||a.status==='archived'?'pill-ok':'pill-wait'}">${a.status==='done'?'已完成':a.status==='archived'?'已歸檔':'待完成'}</span></td>
+    <td style="font-size:12px;color:#888">${a.note||''}</td>
+    <td><div style="display:flex;gap:4px">
+      ${a.status==='pending'?`<button class="btn btn-sm btn-green" onclick="markArchiveDone('${a.id}')">✅ 完成</button>`:''}
+      <button class="btn btn-sm btn-ghost" onclick="deleteArchive('${a.id}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+function openArchiveModal(){
+  ['arc-name','arc-owner','arc-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('arc-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('archive-modal').classList.add('show');
+}
+function closeArchiveModal(){document.getElementById('archive-modal').classList.remove('show');}
+async function saveArchive(){
+  const name=document.getElementById('arc-name').value.trim();
+  if(!name){alert('請填寫文件名稱');return;}
+  const btn=document.getElementById('save-archive-btn');
+  btn.disabled=true;btn.innerHTML='<div class="spinner"></div>';
+  const{error}=await sb.from('admin_archives').insert({
+    name,category:document.getElementById('arc-category').value,
+    doc_date:document.getElementById('arc-date').value,
+    owner:document.getElementById('arc-owner').value.trim(),
+    status:document.getElementById('arc-status').value,
+    note:document.getElementById('arc-note').value.trim()
+  });
+  btn.disabled=false;btn.innerHTML='✅ 儲存';
+  if(error){alert('儲存失敗：'+error.message);return;}
+  closeArchiveModal();await loadArchives();pushNotif('ok','文件已新增',`${name} 已歸檔`);
+}
+async function markArchiveDone(id){await sb.from('admin_archives').update({status:'done'}).eq('id',id);await loadArchives();}
+async function deleteArchive(id){if(!confirm('確定刪除此文件？'))return;await sb.from('admin_archives').delete().eq('id',id);await loadArchives();}
+
+// UTILS
+function updateBadges(){
+  const pe=allEnrollments.filter(e=>e.status==='pending').length;
+  const pa=allAlerts.filter(a=>!a.resolved).length;
+  // enroll badge
+  const be=document.getElementById('badge-enroll');
+  if(be){be.textContent=pe;be.style.display=pe?'inline-flex':'none';}
+  // course badge (on dropdown)
+  const bc=document.getElementById('badge-course');
+  if(bc){bc.textContent=pe;bc.style.display=pe?'inline-flex':'none';}
+  // alerts tab - red pulse when has alerts
+  const ba=document.getElementById('badge-alerts');
+  const ta=document.getElementById('tab-alerts');
+  if(ba){ba.textContent=pa;ba.style.display=pa?'inline-flex':'none';}
+  if(ta){
+    if(pa>0){ta.classList.add('has-alert');}
+    else{ta.classList.remove('has-alert');}
+  }
+}
+function fmtTime(ts){if(!ts)return'';const d=new Date(ts),now=new Date(),diff=now-d;if(diff<60000)return'剛才';if(diff<3600000)return`${Math.floor(diff/60000)} 分鐘前`;if(diff<86400000)return`今天 ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;return d.toLocaleDateString('zh-TW');}
+function pushNotif(type,title,msg){const icons={ok:'✅',enroll:'📋',alert:'🚨'};const el=document.createElement('div');el.className=`notif type-${type}`;el.innerHTML=`<div class="notif-icon">${icons[type]||'🔔'}</div><div class="notif-body"><div class="notif-title">${title}</div><div class="notif-msg">${msg}</div></div><button class="notif-close" onclick="this.parentElement.remove()">✕</button>`;document.getElementById('notification-area').appendChild(el);setTimeout(()=>{el.style.animation='slideOut 0.4s forwards';setTimeout(()=>el.remove(),400);},6000);}
+window.onload=()=>{if(sessionStorage.getItem('admin_auth')==='1'){document.getElementById('login-screen').style.display='none';document.getElementById('main-header').style.display='flex';initAdmin();}};
+</script>
+</body>
+</html>
